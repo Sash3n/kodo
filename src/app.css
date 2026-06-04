@@ -1,0 +1,49 @@
+@import 'tailwindcss';
+
+@theme {
+	/* Kōdo colour palette */
+	--color-kodo-bg: #0a0a0a;
+	--color-kodo-surface: #111111;
+	--color-kodo-text: #f0ede6;
+	--color-kodo-accent: #e8b44a;
+	--color-kodo-muted: #888888;
+
+	/* Typography */
+	--font-display: 'Bebas Neue', sans-serif;
+	--font-body: 'DM Sans', sans-serif;
+	--font-mono: 'Space Mono', monospace;
+
+	/* Spacing / sizing tokens */
+	--spacing-nav: 4rem;
+	--spacing-section: 6rem;
+}
+
+@layer base {
+	:root {
+		color-scheme: dark;
+	}
+
+	body {
+		background-color: var(--color-kodo-bg);
+		color: var(--color-kodo-text);
+		font-family: var(--font-body);
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--font-display);
+		letter-spacing: 0.05em;
+	}
+
+	code,
+	pre,
+	.mono {
+		font-family: var(--font-mono);
+	}
+}
