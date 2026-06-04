@@ -1,0 +1,35 @@
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+
+# SvelteKit build
+.svelte-kit/
+build/
+dist/
+
+# Dependencies
+node_modules/
+
+# Sanity studio
+.sanity/
+
+# Testing artifacts
+playwright-report/
+test-results/
+tests/snapshots/*.png-actual/
+
+# Prompt guide — internal only
+CLOTHING_LINE_BUILD_PROMPT.md
+KODO_BUILD_PROMPT.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Vercel
+.vercel/
