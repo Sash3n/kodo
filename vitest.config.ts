@@ -6,6 +6,11 @@ export default defineConfig({
 	test: {
 		environment: 'jsdom',
 		setupFiles: ['./src/lib/test/setup.ts'],
-		include: ['src/**/*.test.ts'],
+		// Component tests require browser-mode Svelte — run separately with pnpm test:component
+		include: [
+			'src/lib/stores/**/*.test.ts',
+			'src/lib/utils/**/*.test.ts',
+			'src/lib/schemas/**/*.test.ts',
+		],
 	},
 });
