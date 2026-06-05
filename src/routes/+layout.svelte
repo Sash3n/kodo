@@ -3,11 +3,17 @@
 	import AnnouncementBar from '$lib/components/AnnouncementBar.svelte';
 	import Nav from '$lib/components/Nav.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import CartDrawer from '$lib/components/CartDrawer.svelte';
+	import { cartStore } from '$lib/stores/cart.svelte';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	let cartOpen = $state(false);
+
+	onMount(() => {
+		cartStore.loadFromStorage();
+	});
 </script>
 
 <AnnouncementBar />
@@ -19,4 +25,4 @@
 
 <Footer />
 
-<!-- Cart drawer will be wired here in feature/cart-drawer -->
+<CartDrawer open={cartOpen} onClose={() => (cartOpen = false)} />
