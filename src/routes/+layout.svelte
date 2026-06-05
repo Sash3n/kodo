@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import AnnouncementBar from '$lib/components/AnnouncementBar.svelte';
 	import Nav from '$lib/components/Nav.svelte';
 	import Footer from '$lib/components/Footer.svelte';
 
@@ -9,6 +10,7 @@
 	let cartOpen = $state(false);
 </script>
 
+<AnnouncementBar />
 <Nav onCartOpen={() => (cartOpen = true)} />
 
 <div class="pt-[var(--spacing-nav)] animate-page-in">
