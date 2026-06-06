@@ -1,7 +1,14 @@
 import { defineConfig } from 'sanity';
 import { structureTool } from 'sanity/structure';
 import { visionTool } from '@sanity/vision';
-import { seoMeta, productVariant, product, collection, lookbookImage } from './schemas';
+import {
+	seoMeta,
+	productVariant,
+	product,
+	collection,
+	lookbookImage,
+	siteSettings,
+} from './schemas';
 
 const projectId = process.env.PUBLIC_SANITY_PROJECT_ID ?? '';
 const dataset = process.env.PUBLIC_SANITY_DATASET ?? 'production';
@@ -24,11 +31,17 @@ export default defineConfig({
 						S.listItem()
 							.title('Lookbook')
 							.child(S.documentTypeList('lookbookImage').title('Lookbook')),
+						S.divider(),
+						S.listItem()
+							.title('Site Settings')
+							.child(
+								S.editor().id('siteSettings').schemaType('siteSettings').documentId('siteSettings')
+							),
 					]),
 		}),
 		visionTool(),
 	],
 	schema: {
-		types: [seoMeta, productVariant, product, collection, lookbookImage],
+		types: [seoMeta, productVariant, product, collection, lookbookImage, siteSettings],
 	},
 });
