@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
+	import InstagramFeed from '$lib/components/InstagramFeed.svelte';
 
 	let { data }: { data: PageData } = $props();
 </script>
@@ -82,3 +83,5 @@
 		{/if}
 	</div>
 </section>
+
+<InstagramFeed posts={data.instagramPosts} />
