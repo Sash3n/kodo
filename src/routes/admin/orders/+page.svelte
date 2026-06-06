@@ -32,7 +32,16 @@
 <svelte:head><title>Orders — Kōdo Admin</title></svelte:head>
 
 <div class="page">
-	<h1 class="page-title">Orders</h1>
+	<div class="page-header-row">
+		<h1 class="page-title">Orders</h1>
+		<a
+			href="/api/admin/orders-export?status={data.statusFilter === 'all' ? '' : data.statusFilter}"
+			class="export-btn"
+			download
+		>
+			↓ Export CSV
+		</a>
+	</div>
 
 	<!-- Status filter tabs -->
 	<div class="filter-tabs">
@@ -131,12 +140,33 @@
 	.page {
 		max-width: 1100px;
 	}
+	.page-header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 1.25rem;
+	}
 	.page-title {
 		font-family: 'Bebas Neue', sans-serif;
 		font-size: 2rem;
 		letter-spacing: 0.05em;
 		color: #e8e8e8;
-		margin-bottom: 1.25rem;
+	}
+	.export-btn {
+		font-family: 'Space Mono', monospace;
+		font-size: 0.75rem;
+		color: #888;
+		text-decoration: none;
+		border: 1px solid #2a2a2a;
+		padding: 0.4rem 0.85rem;
+		border-radius: 5px;
+		transition:
+			border-color 0.15s,
+			color 0.15s;
+	}
+	.export-btn:hover {
+		border-color: #e8b44a44;
+		color: #e8b44a;
 	}
 
 	.filter-tabs {
