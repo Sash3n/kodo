@@ -263,6 +263,23 @@
 					</div>
 				{/if}
 
+				<!-- Size recommendation -->
+				{#if data.sizeRecommendation}
+					<div
+						class="flex items-center gap-2 border border-[var(--color-kodo-accent)]/20 bg-[var(--color-kodo-accent)]/5 px-4 py-2.5"
+					>
+						<span class="text-[var(--color-kodo-accent)]">→</span>
+						<div>
+							<span class="font-mono text-xs text-[var(--color-kodo-accent)]">
+								We think you're a <strong>{data.sizeRecommendation.suggestedSize}</strong>
+							</span>
+							<span class="ml-1 font-mono text-[10px] text-[var(--color-kodo-muted)]">
+								— {data.sizeRecommendation.reason}
+							</span>
+						</div>
+					</div>
+				{/if}
+
 				<!-- Size selector -->
 				<div class="flex flex-col gap-3">
 					<div class="flex items-center justify-between">

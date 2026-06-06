@@ -1,6 +1,7 @@
 import { fail } from '@sveltejs/kit';
 import { error } from '@sveltejs/kit';
 import { sanityClient, queries } from '$lib/server/sanity';
+import { getSizeRecommendation } from '$lib/server/sizeRecommendation';
 import type { PageServerLoad, Actions } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -20,12 +21,28 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		.eq('status', 'approved')
 		.order('created_at', { ascending: false });
 
-	const { session } = await locals.safeGetSession();
+	const { session, user } = await locals.safeGetSession();
+
+	// Size recommendation from order history (auth users only)
+	let sizeRecommendation = null;
+	if (user) {
+		const { data: orderItems } = await locals.supabase
+			.from('order_items')
+			.select('sku, quantity')
+			.eq('orders.user_id', user.id);
+
+		// Extract product category from SKU prefix (e.g. KDO-HOD → HOD)
+		const productCategory = (product.sku as string | undefined)?.split('-')[1] ?? '';
+		if (orderItems?.length && productCategory) {
+			sizeRecommendation = getSizeRecommendation(orderItems, productCategory);
+		}
+	}
 
 	return {
 		product,
 		reviews: reviews ?? [],
 		isLoggedIn: !!session,
+		sizeRecommendation,
 	};
 };
 
