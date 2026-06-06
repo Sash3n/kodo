@@ -73,6 +73,40 @@
 		setTimeout(() => (addState = 'idle'), 1500);
 	}
 
+	// Restock notify
+	let restockEmail = $state('');
+	let restockState = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let restockError = $state('');
+
+	async function requestRestock(sku: string) {
+		if (!restockEmail.trim() || !restockEmail.includes('@')) {
+			restockError = 'Enter a valid email';
+			return;
+		}
+		restockState = 'loading';
+		restockError = '';
+		try {
+			const res = await fetch('/api/restock', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					email: restockEmail.trim(),
+					productId: product._id,
+					variantSku: sku,
+				}),
+			});
+			if (res.ok) {
+				restockState = 'success';
+			} else {
+				restockState = 'error';
+				restockError = 'Could not register. Try again.';
+			}
+		} catch {
+			restockState = 'error';
+			restockError = 'Network error.';
+		}
+	}
+
 	// Reviews
 	let reviewSubmitting = $state(false);
 	let reviewDone = $state(false);
@@ -285,6 +319,45 @@
 						Add to Cart
 					{/if}
 				</button>
+
+				<!-- Restock notify — show when selected variant is OOS -->
+				{#if isOOS && selectedVariant}
+					<div class="border border-[var(--color-kodo-border)] p-4">
+						{#if restockState === 'success'}
+							<p class="font-mono text-xs text-[#34d399]">
+								We'll email you when {selectedVariant.sku} is back in stock.
+							</p>
+						{:else}
+							<p
+								class="mb-3 font-mono text-[10px] tracking-[0.2em] text-[var(--color-kodo-muted)] uppercase"
+							>
+								Out of stock — notify me
+							</p>
+							<div class="flex gap-2">
+								<input
+									type="email"
+									bind:value={restockEmail}
+									placeholder="your@email.com"
+									class="flex-1 border border-[var(--color-kodo-border)] bg-transparent px-3 py-2 font-mono text-xs text-[var(--color-kodo-text)] placeholder:text-[var(--color-kodo-muted)] focus:border-[var(--color-kodo-accent)] focus:outline-none"
+									onkeydown={(e) => {
+										if (e.key === 'Enter' && selectedVariant) requestRestock(selectedVariant.sku);
+									}}
+								/>
+								<button
+									type="button"
+									onclick={() => selectedVariant && requestRestock(selectedVariant.sku)}
+									disabled={restockState === 'loading'}
+									class="border border-[var(--color-kodo-accent)] px-4 font-mono text-[10px] tracking-[0.15em] text-[var(--color-kodo-accent)] uppercase disabled:opacity-40"
+								>
+									{restockState === 'loading' ? '…' : 'Notify'}
+								</button>
+							</div>
+							{#if restockError}
+								<p class="mt-1 font-mono text-[10px] text-red-400">{restockError}</p>
+							{/if}
+						{/if}
+					</div>
+				{/if}
 
 				<!-- Divider -->
 				<div class="h-px bg-[var(--color-kodo-border)]"></div>
