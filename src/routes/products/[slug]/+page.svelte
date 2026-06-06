@@ -5,10 +5,25 @@
 	import { formatZAR } from '$lib/utils/format';
 	import { cartStore } from '$lib/stores/cart.svelte';
 	import WishlistButton from '$lib/components/WishlistButton.svelte';
+	import RecentlyViewed from '$lib/components/RecentlyViewed.svelte';
+	import { recentlyViewed } from '$lib/stores/recentlyViewed.svelte';
 
 	let { data }: { data: PageData } = $props();
 
 	const product = $derived(data.product);
+
+	// Track this product as recently viewed
+	$effect(() => {
+		if (product?._id) {
+			recentlyViewed.track({
+				productId: product._id,
+				slug: product.slug,
+				title: product.title ?? product.name,
+				price: product.price,
+				image: product.images?.[0] ?? null,
+			});
+		}
+	});
 
 	// Gallery
 	let activeImageIndex = $state(0);
@@ -587,6 +602,8 @@
 		</div>
 	</div>
 </section>
+
+<RecentlyViewed excludeId={product._id} />
 
 <!-- Size guide modal -->
 {#if sizeGuideOpen}
