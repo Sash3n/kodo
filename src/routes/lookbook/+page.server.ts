@@ -1,11 +1,15 @@
 import type { PageServerLoad } from './$types';
 import { sanityClient, queries } from '$lib/server/sanity';
+import { fetchInstagramFeed } from '$lib/server/instagram';
 
 export const load: PageServerLoad = async () => {
-	try {
-		const images = await sanityClient.fetch(queries.lookbookImages);
-		return { images: images ?? [] };
-	} catch {
-		return { images: [] };
-	}
+	const [images, instagramPosts] = await Promise.all([
+		sanityClient.fetch(queries.lookbook).catch(() => []),
+		fetchInstagramFeed(12),
+	]);
+
+	return {
+		images: images ?? [],
+		instagramPosts,
+	};
 };
