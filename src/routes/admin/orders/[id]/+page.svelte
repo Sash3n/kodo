@@ -29,6 +29,66 @@
 	};
 
 	let saving = $state(false);
+
+	// Waybill generation
+	let waybillOpen = $state(false);
+	let waybillLoading = $state(false);
+	let waybillResult = $state<{
+		waybillNumber: string;
+		trackingUrl: string;
+		labelUrl: string;
+	} | null>(null);
+	let waybillError = $state('');
+
+	// Pre-fill shipping fields from order if available
+	const addr = $derived(data.order.shipping_address as Record<string, string> | null);
+
+	let wbName = $state('');
+	let wbStreet = $state('');
+	$effect(() => {
+		wbName = data.order.shipping_name ?? '';
+		wbStreet = addr?.street ?? '';
+	});
+	let wbSuburb = $state('');
+	let wbCity = $state('');
+	let wbPostal = $state('');
+	$effect(() => {
+		wbSuburb = addr?.suburb ?? '';
+		wbCity = addr?.city ?? '';
+		wbPostal = addr?.postalCode ?? '';
+	});
+	let wbPhone = $state('');
+	let wbService = $state<'ECO' | 'EXP'>('ECO');
+	let wbWeight = $state('0.5');
+
+	async function createWaybill() {
+		waybillLoading = true;
+		waybillError = '';
+		try {
+			const res = await fetch('/api/admin/create-waybill', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					orderId: data.order.id,
+					recipientName: wbName,
+					streetAddress: wbStreet,
+					suburb: wbSuburb,
+					city: wbCity,
+					postalCode: wbPostal,
+					recipientPhone: wbPhone || undefined,
+					serviceType: wbService,
+					weightKg: parseFloat(wbWeight) || 0.5,
+				}),
+			});
+			const json = await res.json();
+			if (!res.ok) throw new Error(json.message ?? 'Failed');
+			waybillResult = json.waybill;
+		} catch (err) {
+			waybillError = err instanceof Error ? err.message : 'Unknown error';
+		} finally {
+			waybillLoading = false;
+		}
+	}
 </script>
 
 <svelte:head><title>Order #{data.order.id.slice(0, 8)} — Kōdo Admin</title></svelte:head>
@@ -114,6 +174,110 @@
 			</form>
 		</div>
 	</div>
+
+	<!-- Shipping label / waybill -->
+	<section class="section">
+		<div class="section-header-row">
+			<h2 class="section-title">Shipping label</h2>
+			{#if !waybillOpen && !waybillResult}
+				<button type="button" class="btn" onclick={() => (waybillOpen = true)}>
+					Generate waybill
+				</button>
+			{/if}
+		</div>
+
+		{#if waybillResult}
+			<div class="waybill-result">
+				<p class="waybill-number">Waybill: <strong>{waybillResult.waybillNumber}</strong></p>
+				<div class="waybill-links">
+					<a href={waybillResult.trackingUrl} target="_blank" rel="noopener" class="waybill-link">
+						Track shipment →
+					</a>
+					{#if waybillResult.labelUrl}
+						<a href={waybillResult.labelUrl} target="_blank" rel="noopener" class="waybill-link">
+							Print label →
+						</a>
+					{/if}
+				</div>
+			</div>
+		{:else if waybillOpen}
+			<div class="waybill-form card">
+				<div class="wb-grid">
+					<div class="field-row">
+						<label for="wb-name">Recipient name</label>
+						<input
+							id="wb-name"
+							type="text"
+							bind:value={wbName}
+							class="select"
+							placeholder="Full name"
+						/>
+					</div>
+					<div class="field-row">
+						<label for="wb-phone">Phone</label>
+						<input
+							id="wb-phone"
+							type="text"
+							bind:value={wbPhone}
+							class="select"
+							placeholder="0XX XXX XXXX"
+						/>
+					</div>
+					<div class="field-row">
+						<label for="wb-street">Street address</label>
+						<input
+							id="wb-street"
+							type="text"
+							bind:value={wbStreet}
+							class="select"
+							placeholder="123 Main Rd"
+						/>
+					</div>
+					<div class="field-row">
+						<label for="wb-suburb">Suburb</label>
+						<input id="wb-suburb" type="text" bind:value={wbSuburb} class="select" />
+					</div>
+					<div class="field-row">
+						<label for="wb-city">City</label>
+						<input id="wb-city" type="text" bind:value={wbCity} class="select" />
+					</div>
+					<div class="field-row">
+						<label for="wb-postal">Postal code</label>
+						<input id="wb-postal" type="text" bind:value={wbPostal} class="select" maxlength="4" />
+					</div>
+					<div class="field-row">
+						<label for="wb-service">Service</label>
+						<select id="wb-service" bind:value={wbService} class="select">
+							<option value="ECO">Economy (3–5 days)</option>
+							<option value="EXP">Express (next business day)</option>
+						</select>
+					</div>
+					<div class="field-row">
+						<label for="wb-weight">Weight (kg)</label>
+						<input
+							id="wb-weight"
+							type="number"
+							bind:value={wbWeight}
+							class="select"
+							step="0.1"
+							min="0.1"
+						/>
+					</div>
+				</div>
+				{#if waybillError}
+					<p class="wb-error">{waybillError}</p>
+				{/if}
+				<div class="wb-actions">
+					<button type="button" class="btn" onclick={createWaybill} disabled={waybillLoading}>
+						{waybillLoading ? 'Creating…' : 'Create waybill'}
+					</button>
+					<button type="button" class="btn-ghost" onclick={() => (waybillOpen = false)}
+						>Cancel</button
+					>
+				</div>
+			</div>
+		{/if}
+	</section>
 
 	<!-- Line items -->
 	<section class="section">
@@ -324,5 +488,69 @@
 	.mono {
 		font-family: 'Space Mono', monospace;
 		font-size: 0.8rem;
+	}
+
+	.section-header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.75rem;
+	}
+
+	.waybill-result {
+		background: #111;
+		border: 1px solid #1e1e1e;
+		border-radius: 8px;
+		padding: 1rem 1.25rem;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+	.waybill-number {
+		font-size: 0.875rem;
+		color: #ccc;
+	}
+	.waybill-number strong {
+		font-family: 'Space Mono', monospace;
+		color: #e8b44a;
+	}
+	.waybill-links {
+		display: flex;
+		gap: 1rem;
+	}
+	.waybill-link {
+		font-family: 'Space Mono', monospace;
+		font-size: 0.78rem;
+		color: #e8b44a;
+		text-decoration: none;
+	}
+
+	.waybill-form {
+		margin-top: 0;
+	}
+	.wb-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.65rem;
+		margin-bottom: 0.75rem;
+	}
+	.wb-error {
+		font-size: 0.78rem;
+		color: #f87171;
+		margin-bottom: 0.5rem;
+	}
+	.wb-actions {
+		display: flex;
+		gap: 0.75rem;
+	}
+
+	.btn-ghost {
+		background: transparent;
+		border: 1px solid #333;
+		color: #666;
+		padding: 0.6rem 1.25rem;
+		border-radius: 6px;
+		font-size: 0.875rem;
+		cursor: pointer;
 	}
 </style>
