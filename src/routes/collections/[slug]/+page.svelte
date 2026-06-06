@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import ProductCard from '$lib/components/ProductCard.svelte';
+	import DropCountdown from '$lib/components/DropCountdown.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -11,14 +12,9 @@
 		archive: 'ARCHIVE',
 	};
 
-	const daysUntilDrop = $derived(() => {
-		if (!data.collection?.releaseDate) return null;
-		const release = new Date(data.collection.releaseDate);
-		const now = new Date();
-		if (release <= now) return null;
-		const diff = Math.ceil((release.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-		return diff;
-	});
+	const isUpcoming = $derived(
+		!!data.collection?.releaseDate && new Date(data.collection.releaseDate) > new Date()
+	);
 </script>
 
 <svelte:head>
@@ -58,18 +54,13 @@
 			</p>
 		{/if}
 
-		{#if daysUntilDrop() !== null}
-			<div
-				class="mt-8 inline-flex items-center gap-3 border border-[var(--color-kodo-accent)] px-6 py-3"
-			>
-				<span class="h-2 w-2 rounded-full bg-[var(--color-kodo-accent)] animate-amber-pulse"></span>
-				<span
-					class="text-xs tracking-[0.3em] text-[var(--color-kodo-accent)] uppercase"
-					style="font-family: var(--font-mono);"
-				>
-					Drop in {daysUntilDrop()}
-					{daysUntilDrop() === 1 ? 'day' : 'days'}
-				</span>
+		{#if isUpcoming && data.collection}
+			<div class="mt-8 max-w-lg">
+				<DropCountdown
+					releaseDate={data.collection.releaseDate}
+					collectionId={data.collection._id}
+					collectionTitle={data.collection.title}
+				/>
 			</div>
 		{/if}
 	</div>
