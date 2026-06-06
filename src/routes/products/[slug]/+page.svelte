@@ -4,6 +4,7 @@
 	import type { ProductVariant } from '$lib/types/product';
 	import { formatZAR } from '$lib/utils/format';
 	import { cartStore } from '$lib/stores/cart.svelte';
+	import WishlistButton from '$lib/components/WishlistButton.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -296,29 +297,38 @@
 					</p>
 				{/if}
 
-				<!-- Add to cart -->
-				<button
-					onclick={addToCart}
-					disabled={!selectedSize || isOOS}
-					class="relative w-full border px-8 py-4 text-sm tracking-[0.3em] uppercase transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40"
-					class:border-[var(--color-kodo-accent)]={addState === 'idle' || addState === 'success'}
-					class:bg-[var(--color-kodo-accent)]={addState === 'success'}
-					class:text-[var(--color-kodo-bg)]={addState === 'success'}
-					class:text-[var(--color-kodo-accent)]={addState === 'idle'}
-					class:border-red-500={addState === 'error'}
-					class:text-red-500={addState === 'error'}
-					class:animate-shake={addState === 'error'}
-					class:animate-amber-pulse={addState === 'success'}
-					style="font-family: var(--font-mono);"
-				>
-					{#if addState === 'success'}
-						Added to Cart
-					{:else if addState === 'error'}
-						{isOOS ? 'Out of Stock' : 'Select a Size'}
-					{:else}
-						Add to Cart
-					{/if}
-				</button>
+				<!-- Add to cart + wishlist -->
+				<div class="flex gap-2">
+					<button
+						onclick={addToCart}
+						disabled={!selectedSize || isOOS}
+						class="relative w-full border px-8 py-4 text-sm tracking-[0.3em] uppercase transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40"
+						class:border-[var(--color-kodo-accent)]={addState === 'idle' || addState === 'success'}
+						class:bg-[var(--color-kodo-accent)]={addState === 'success'}
+						class:text-[var(--color-kodo-bg)]={addState === 'success'}
+						class:text-[var(--color-kodo-accent)]={addState === 'idle'}
+						class:border-red-500={addState === 'error'}
+						class:text-red-500={addState === 'error'}
+						class:animate-shake={addState === 'error'}
+						class:animate-amber-pulse={addState === 'success'}
+						style="font-family: var(--font-mono);"
+					>
+						{#if addState === 'success'}
+							Added to Cart
+						{:else if addState === 'error'}
+							{isOOS ? 'Out of Stock' : 'Select a Size'}
+						{:else}
+							Add to Cart
+						{/if}
+					</button>
+					<WishlistButton
+						productId={product._id}
+						slug={product.slug}
+						title={product.title ?? product.name}
+						price={product.price}
+						image={product.images?.[0] ?? null}
+					/>
+				</div>
 
 				<!-- Restock notify — show when selected variant is OOS -->
 				{#if isOOS && selectedVariant}
