@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import type { PageData } from './$types';
 	import type { ProductVariant } from '$lib/types/product';
 	import { formatZAR } from '$lib/utils/format';
@@ -70,6 +71,15 @@
 		});
 		addState = 'success';
 		setTimeout(() => (addState = 'idle'), 1500);
+	}
+
+	// Reviews
+	let reviewSubmitting = $state(false);
+	let reviewDone = $state(false);
+	let reviewRating = $state(0);
+
+	function stars(n: number, filled: number) {
+		return n <= filled ? '★' : '☆';
 	}
 
 	const sizeGuideData = [
@@ -318,6 +328,182 @@
 		</div>
 	</div>
 </div>
+
+<!-- Reviews section -->
+<section class="mx-auto max-w-7xl px-[var(--spacing-gutter)] py-16">
+	<h2
+		class="mb-8 leading-none text-[var(--color-kodo-text)]"
+		style="font-family: var(--font-display); font-size: clamp(2rem, 4vw, 3rem);"
+	>
+		Reviews
+		{#if data.reviews.length > 0}
+			<span
+				class="ml-3 text-base text-[var(--color-kodo-muted)]"
+				style="font-family: var(--font-mono);">({data.reviews.length})</span
+			>
+		{/if}
+	</h2>
+
+	<div class="grid grid-cols-1 gap-12 lg:grid-cols-2">
+		<!-- Existing reviews -->
+		<div class="flex flex-col gap-6">
+			{#if data.reviews.length === 0}
+				<p class="text-sm text-[var(--color-kodo-muted)]" style="font-family: var(--font-mono);">
+					No reviews yet. Be the first.
+				</p>
+			{:else}
+				{#each data.reviews as review (review.id)}
+					<div class="border-b border-[var(--color-kodo-border)] pb-6">
+						<div class="mb-2 flex items-center justify-between">
+							<span class="text-sm font-semibold text-[var(--color-kodo-text)]"
+								>{review.display_name}</span
+							>
+							<span
+								class="text-[var(--color-kodo-accent)]"
+								style="font-family: var(--font-mono); letter-spacing: 2px;"
+							>
+								{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+							</span>
+						</div>
+						<p class="text-sm leading-relaxed text-[var(--color-kodo-text-muted)]">{review.body}</p>
+						<p
+							class="mt-2 text-[10px] tracking-[0.15em] text-[var(--color-kodo-muted)] uppercase"
+							style="font-family: var(--font-mono);"
+						>
+							{new Date(review.created_at).toLocaleDateString('en-ZA', {
+								day: 'numeric',
+								month: 'long',
+								year: 'numeric',
+							})}
+						</p>
+					</div>
+				{/each}
+			{/if}
+		</div>
+
+		<!-- Submit a review -->
+		<div>
+			{#if !data.isLoggedIn}
+				<div class="border border-[var(--color-kodo-border)] p-6">
+					<p
+						class="mb-4 text-sm text-[var(--color-kodo-muted)]"
+						style="font-family: var(--font-mono);"
+					>
+						Sign in to leave a review.
+					</p>
+					<a
+						href="/account"
+						class="inline-block border border-[var(--color-kodo-accent)] px-6 py-3 text-xs tracking-[0.2em] text-[var(--color-kodo-accent)] uppercase"
+						style="font-family: var(--font-mono);"
+					>
+						Sign in
+					</a>
+				</div>
+			{:else if reviewDone}
+				<div
+					class="border border-[var(--color-kodo-accent)]/30 bg-[var(--color-kodo-accent)]/5 p-6"
+				>
+					<p class="text-sm text-[var(--color-kodo-accent)]" style="font-family: var(--font-mono);">
+						Review submitted — pending approval.
+					</p>
+				</div>
+			{:else}
+				<form
+					method="POST"
+					action="?/submitReview"
+					use:enhance={() => {
+						reviewSubmitting = true;
+						return async ({ result, update }) => {
+							await update();
+							reviewSubmitting = false;
+							if (result.type === 'success') reviewDone = true;
+						};
+					}}
+					class="flex flex-col gap-5"
+				>
+					<h3
+						class="text-[10px] tracking-[0.3em] text-[var(--color-kodo-muted)] uppercase"
+						style="font-family: var(--font-mono);"
+					>
+						Write a review
+					</h3>
+
+					<!-- Star rating -->
+					<div class="flex flex-col gap-2">
+						<span
+							class="text-[10px] tracking-[0.2em] text-[var(--color-kodo-muted)] uppercase"
+							style="font-family: var(--font-mono);"
+						>
+							Rating
+						</span>
+						<div class="flex gap-1">
+							{#each [1, 2, 3, 4, 5] as n}
+								<button
+									type="button"
+									onclick={() => (reviewRating = n)}
+									class="text-2xl transition-colors"
+									style="color: {n <= reviewRating
+										? 'var(--color-kodo-accent)'
+										: 'var(--color-kodo-border)'}; background:none; border:none; cursor:pointer; padding:0;"
+									aria-label="{n} stars">{stars(n, reviewRating)}</button
+								>
+							{/each}
+						</div>
+						<input type="hidden" name="rating" value={reviewRating} />
+					</div>
+
+					<div class="flex flex-col gap-1">
+						<label
+							for="review-name"
+							class="text-[10px] tracking-[0.2em] text-[var(--color-kodo-muted)] uppercase"
+							style="font-family: var(--font-mono);"
+						>
+							Display name
+						</label>
+						<input
+							id="review-name"
+							type="text"
+							name="displayName"
+							required
+							maxlength="60"
+							class="border border-[var(--color-kodo-border)] bg-transparent px-4 py-3 text-sm text-[var(--color-kodo-text)] placeholder:text-[var(--color-kodo-muted)] focus:border-[var(--color-kodo-accent)] focus:outline-none"
+							placeholder="e.g. Alex K."
+						/>
+					</div>
+
+					<div class="flex flex-col gap-1">
+						<label
+							for="review-body"
+							class="text-[10px] tracking-[0.2em] text-[var(--color-kodo-muted)] uppercase"
+							style="font-family: var(--font-mono);"
+						>
+							Your review
+						</label>
+						<textarea
+							id="review-body"
+							name="body"
+							required
+							minlength="10"
+							maxlength="2000"
+							rows="5"
+							class="border border-[var(--color-kodo-border)] bg-transparent px-4 py-3 text-sm text-[var(--color-kodo-text)] placeholder:text-[var(--color-kodo-muted)] focus:border-[var(--color-kodo-accent)] focus:outline-none resize-none"
+							placeholder="How does it fit? Quality? Vibe?"
+						></textarea>
+					</div>
+
+					<button
+						type="submit"
+						disabled={reviewSubmitting || reviewRating === 0}
+						class="border border-[var(--color-kodo-accent)] px-8 py-4 text-xs tracking-[0.3em] text-[var(--color-kodo-accent)] uppercase transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-40 hover:bg-[var(--color-kodo-accent)] hover:text-[var(--color-kodo-bg)]"
+						style="font-family: var(--font-mono);"
+					>
+						{reviewSubmitting ? 'Submitting…' : 'Submit Review'}
+					</button>
+				</form>
+			{/if}
+		</div>
+	</div>
+</section>
 
 <!-- Size guide modal -->
 {#if sizeGuideOpen}
