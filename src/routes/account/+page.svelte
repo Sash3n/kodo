@@ -167,13 +167,13 @@
 												class="py-3 text-[var(--color-kodo-text-muted)]"
 												style="font-family: var(--font-body);"
 											>
-												{new Date(order.date).toLocaleDateString('en-ZA')}
+												{new Date(order.created_at).toLocaleDateString('en-ZA')}
 											</td>
 											<td
 												class="py-3 text-[var(--color-kodo-text)]"
 												style="font-family: var(--font-mono);"
 											>
-												{order.total}
+												R{(order.total_cents / 100).toFixed(2)}
 											</td>
 											<td class="py-3" style="font-family: var(--font-mono);">
 												<span

@@ -113,4 +113,12 @@ export const queries = {
     span,
     "collection": collection-> { title, "slug": slug.current }
   }`,
+
+	siteSettings: `*[_type == "siteSettings" && _id == "siteSettings"][0] {
+    announcementBar,
+    social,
+    commerce,
+    brand,
+    seo
+  }`,
 };
