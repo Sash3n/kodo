@@ -16,6 +16,7 @@ export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		const formData = await request.formData();
 		const cartJson = formData.get('cart') as string;
+		const discountCode = (formData.get('discountCode') as string)?.trim().toUpperCase() || null;
 
 		if (!cartJson) throw error(400, 'No cart data');
 
@@ -26,11 +27,36 @@ export const actions: Actions = {
 			throw error(400, 'Invalid cart data');
 		}
 
-		// Validate stock via Supabase (placeholder — real stock check uses DB)
-		// In production this would query the `product_variants` table
 		if (items.length === 0) throw error(400, 'Cart is empty');
 
-		const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+		const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+		let discountCents = 0;
+		let discountId: string | null = null;
+
+		// Validate discount code if provided
+		if (discountCode) {
+			const { data: discount } = await locals.supabase
+				.from('discount_codes')
+				.select('id, type, value, min_order_cents, max_uses, uses, expires_at')
+				.eq('active', true)
+				.ilike('code', discountCode)
+				.single();
+
+			if (
+				discount &&
+				(!discount.expires_at || new Date(discount.expires_at) >= new Date()) &&
+				(discount.max_uses === null || discount.uses < discount.max_uses) &&
+				subtotal >= discount.min_order_cents
+			) {
+				discountId = discount.id;
+				discountCents =
+					discount.type === 'percent'
+						? Math.floor((subtotal * discount.value) / 100)
+						: Math.min(discount.value, subtotal);
+			}
+		}
+
+		const total = Math.max(0, subtotal - discountCents);
 		const { session } = await locals.safeGetSession();
 
 		const paymentData: Record<string, string> = {
@@ -49,11 +75,24 @@ export const actions: Actions = {
 				.map((i) => `${i.sku} x${i.quantity}`)
 				.join(', ')
 				.slice(0, 255),
+			// Pass discount info for ITN to record
+			...(discountCode ? { custom_str1: discountCode } : {}),
+			...(discountId ? { custom_str2: discountId } : {}),
 		};
 
 		paymentData.signature = buildPayFastSignature(paymentData, PAYFAST_PASSPHRASE);
 
-		const payfastUrl = new URL('https://sandbox.payfast.co.za/eng/process');
+		// Increment usage count immediately (pre-auth; ITN reverses if payment fails)
+		if (discountId) {
+			await locals.supabase.rpc('increment_discount_uses', { code_id: discountId });
+		}
+
+		const isSandbox = PAYFAST_MERCHANT_ID === '10000100';
+		const payfastUrl = new URL(
+			isSandbox
+				? 'https://sandbox.payfast.co.za/eng/process'
+				: 'https://www.payfast.co.za/eng/process'
+		);
 		Object.entries(paymentData).forEach(([k, v]) => payfastUrl.searchParams.set(k, v));
 
 		redirect(303, payfastUrl.toString());
