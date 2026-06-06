@@ -8,6 +8,7 @@ import {
 } from '$env/static/private';
 import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { createClient } from '@supabase/supabase-js';
+import { sendOrderConfirmation } from '$lib/server/email/sendOrderConfirmation';
 import type { RequestHandler } from './$types';
 
 function verifySignature(data: Record<string, string>, passphrase: string): boolean {
@@ -99,6 +100,22 @@ export const POST: RequestHandler = async ({ request }) => {
 		if (itemsErr) {
 			console.error('[ITN] order_items insert failed', itemsErr);
 		}
+	}
+
+	// Send order confirmation email (fire-and-forget — don't fail ITN on email error)
+	const customerEmail = params.email_address ?? '';
+	if (customerEmail) {
+		sendOrderConfirmation({
+			orderId: order.id,
+			email: customerEmail,
+			totalCents,
+			items: orderItems.map((i) => ({
+				sku: i.sku,
+				name: i.name,
+				quantity: i.quantity,
+				price_cents: i.price_cents,
+			})),
+		}).catch((err) => console.error('[ITN] email send threw', err));
 	}
 
 	return json({ received: true });
